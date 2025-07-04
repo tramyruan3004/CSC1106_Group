@@ -8,7 +8,7 @@ Group 9
 
 Folder Information:
 _curl
-    command - consists of all the curl commands used for creation, testing and assignment (GET, POST, PATCH)
+    command - consists of all the curl commands used for creation, testing and assignment (GET, POST, PATCH, DELETE)
 src
     routes
         assign.rs - consists of GET and POST for bugs assignment, including error handling and access control
