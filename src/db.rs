@@ -31,7 +31,7 @@ pub async fn init_db(pool: &SqlitePool) -> Result<(), sqlx::Error> {
             user_id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             role TEXT NOT NULL,
-            username TEXT NOT NULL,
+            username TEXT NOT NULL UNIQUE,
             hashed_password TEXT NOT NULL
         );"
     ).execute(pool).await?;
