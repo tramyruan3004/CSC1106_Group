@@ -68,3 +68,15 @@ curl -i -X PATCH http://localhost:8080/bugs/1 \
       }'
 
 
+-----------------
+# assign dev test
+curl -X POST http://localhost:8080/bugs/assign \
+  -H "Content-Type: application/x-www-form-urlencoded"\
+  -d "bug_id=1&developer_id=dev123"
+  
+-----------------
+# assign mem to proj test
+curl -X POST http://localhost:8080/projects/1/assign   -H "Content-Type: application/json"   -d '{
+    "username": "username1" 
+}'
+

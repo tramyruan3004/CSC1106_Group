@@ -96,3 +96,8 @@ pub struct AssignBugForm {
     pub bug_id: i64,
     pub developer_id: String,
 }
+
+#[derive(serde::Deserialize)]
+pub struct AssignMemberToProjectRequest {
+    pub username: String,
+}

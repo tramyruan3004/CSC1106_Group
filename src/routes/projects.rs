@@ -2,7 +2,7 @@ use actix_web::{get, post, patch, delete, web, HttpResponse, Responder};
 use sqlx::SqlitePool;
 use chrono::Utc;
 
-use crate::models::{Project, NewProject, UpdateProjectAdmin};
+use crate::models::{Project, NewProject, UpdateProjectAdmin, AssignMemberToProjectRequest};
 
 #[get("/projects")]
 async fn list_projects(pool: web::Data<SqlitePool>) -> impl Responder {
@@ -101,5 +101,50 @@ pub async fn delete_project(
             }
         }
         Err(err) => HttpResponse::InternalServerError().body(format!("Delete failed: {}", err)),
+    }
+}
+
+#[post("/projects/{id}/assign")]
+pub async fn assign_member_to_project(
+    pool: web::Data<SqlitePool>,
+    path: web::Path<i64>,
+    json: web::Json<AssignMemberToProjectRequest>,
+) -> impl Responder {
+    let project_id = path.into_inner();
+    let AssignMemberToProjectRequest { username } = json.into_inner();
+
+    // Check project exists
+    let project_check = sqlx::query("SELECT 1 FROM projects WHERE project_id = ?")
+        .bind(project_id)
+        .fetch_optional(pool.get_ref())
+        .await;
+
+    if let Ok(None) = project_check {
+        return HttpResponse::NotFound().body("Project not found");
+    }
+
+    // Get user_id by username
+    let user_row = sqlx::query!("SELECT user_id FROM users WHERE username = ?", username)
+        .fetch_optional(pool.get_ref())
+        .await;
+
+    let user_id = match user_row {
+        Ok(Some(record)) => record.user_id,
+        Ok(None) => return HttpResponse::NotFound().body("User not found"),
+        Err(err) => return HttpResponse::InternalServerError().body(format!("DB error: {}", err)),
+    };
+
+    // Insert into project_members
+    let res = sqlx::query(
+        "INSERT OR REPLACE INTO project_members (project_id, user_id) VALUES (?, ?)",
+    )
+    .bind(project_id)
+    .bind(user_id)
+    .execute(pool.get_ref())
+    .await;
+
+    match res {
+        Ok(_) => HttpResponse::Ok().body("Member assigned to project successfully"),
+        Err(err) => HttpResponse::InternalServerError().body(format!("Assignment failed: {}", err)),
     }
 }

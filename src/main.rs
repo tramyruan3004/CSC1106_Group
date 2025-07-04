@@ -51,6 +51,7 @@ async fn main() -> std::io::Result<()> {
             .service(delete_bug)
             .service(show_assign_form)
             .service(assign_bug)
+            .service(assign_member_to_project)
             // .service(list_projects)
             // .service(add_project)
             // .service(index)

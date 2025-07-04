@@ -39,7 +39,6 @@ pub async fn init_db(pool: &SqlitePool) -> Result<(), sqlx::Error> {
         "CREATE TABLE IF NOT EXISTS project_members (
             project_id TEXT NOT NULL,
             user_id TEXT NOT NULL,
-            role TEXT NOT NULL, -- optional: 'developer' or 'staff'
             PRIMARY KEY (project_id, user_id),
             FOREIGN KEY (project_id) REFERENCES projects(project_id),
             FOREIGN KEY (user_id) REFERENCES users(user_id)
