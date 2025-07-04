@@ -49,6 +49,8 @@ async fn main() -> std::io::Result<()> {
             .service(get_bug)
             .service(update_bug)
             .service(delete_bug)
+            .service(show_assign_form)
+            .service(assign_bug)
             // .service(list_projects)
             // .service(add_project)
             // .service(index)

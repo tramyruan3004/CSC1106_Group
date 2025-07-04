@@ -10,13 +10,6 @@ use crate::db::{
 
 use sqlx::SqlitePool;
 
-//#[post("/bugs/new")]
-// async fn create_bug(pool: web::Data<SqlitePool>, json: web::Json<NewBug>) -> impl Responder {
-//     match db::insert_bug(&pool, json.0).await {
-//         Ok(bug) => HttpResponse::Ok().json(bug),
-//         Err(e) => HttpResponse::InternalServerError().body(format!("Failed: {}", e)),
-//     }
-// }
 
 #[post("/bugs/new")]
 async fn create_bug(pool: web::Data<SqlitePool>, json: web::Json<NewBug>) -> impl Responder {

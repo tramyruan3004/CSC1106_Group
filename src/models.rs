@@ -91,3 +91,8 @@ pub struct UpdateUser {
     pub hashed_password: Option<String>,
 }
 
+#[derive(Deserialize)]
+pub struct AssignBugForm {
+    pub bug_id: i64,
+    pub developer_id: String,
+}
