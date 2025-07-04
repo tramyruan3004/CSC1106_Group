@@ -51,7 +51,6 @@ pub struct Project {
     pub description: String,
     pub created_at: String,
     pub created_by: String,
-    pub users_list: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -65,7 +64,6 @@ pub struct NewProject {
 pub struct UpdateProjectAdmin {
     pub name: Option<String>,
     pub description: Option<String>,
-    pub users_list: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, sqlx::FromRow)]

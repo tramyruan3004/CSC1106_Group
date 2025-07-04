@@ -21,8 +21,7 @@ pub async fn init_db(pool: &SqlitePool) -> Result<(), sqlx::Error> {
             name TEXT NOT NULL,
             description TEXT NOT NULL,
             created_by TEXT NOT NULL,
-            created_at DATETIME NOT NULL,
-            users_list TEXT NOT NULL
+            created_at DATETIME NOT NULL
         );"
     ).execute(pool).await?;
     sqlx::query(
@@ -32,6 +31,16 @@ pub async fn init_db(pool: &SqlitePool) -> Result<(), sqlx::Error> {
             role TEXT NOT NULL,
             username TEXT NOT NULL,
             hashed_password TEXT NOT NULL
+        );"
+    ).execute(pool).await?;
+        sqlx::query(
+        "CREATE TABLE IF NOT EXISTS project_members (
+            project_id TEXT NOT NULL,
+            user_id TEXT NOT NULL,
+            role TEXT NOT NULL, -- optional: 'developer' or 'staff'
+            PRIMARY KEY (project_id, user_id),
+            FOREIGN KEY (project_id) REFERENCES projects(project_id),
+            FOREIGN KEY (user_id) REFERENCES users(user_id)
         );"
     ).execute(pool).await?;
     Ok(())

@@ -29,7 +29,7 @@ async fn login(pool: web::Data<SqlitePool>, body: web::Json<LoginRequest>) -> Re
             if verify(&salted, &stored_hash).unwrap_or(false) {
                 let user_id = Uuid::parse_str(&db_user.user_id)
                     .map_err(|_| actix_web::error::ErrorInternalServerError("Invalid UUID"))?;
-                let token = auth::create_token(user_id);
+                let token = auth::create_token(user_id, &db_user.role);
                 Ok(HttpResponse::Ok().json(serde_json::json!({ "status": "success", "token": token })))
             }else{
                 Ok(HttpResponse::Unauthorized().json(serde_json::json!({ "status": "failure" })))

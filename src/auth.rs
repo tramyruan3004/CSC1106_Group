@@ -8,12 +8,25 @@ use futures_util::future::{ready, Ready};
 #[derive(Serialize, Deserialize)]
 struct Claims {
     sub: String, 
+    role: String,
     exp: usize,  
 }
 
 #[derive(Debug, Clone)]
 pub struct Authenticated {
     pub user_id: String,
+    pub role: String,
+}
+impl Authenticated {
+    pub fn is_admin(&self) -> bool {
+        self.role == "admin"
+    }
+    pub fn is_developer(&self) -> bool {
+        self.role == "developer"
+    }
+    pub fn is_staff(&self) -> bool {
+        self.role == "staff"
+    }
 }
 
 impl FromRequest for Authenticated {
@@ -35,6 +48,7 @@ impl FromRequest for Authenticated {
             ) {
                 return ready(Ok(Authenticated {
                     user_id: data.claims.sub,
+                    role: data.claims.role,
                 }));
             }
         }
@@ -43,23 +57,22 @@ impl FromRequest for Authenticated {
     }
 }
 
-pub fn create_token(user_id: Uuid) -> String {
+pub fn create_token(user_id: Uuid, role: &str) -> String {
     let expiration = chrono::Utc::now()
         .checked_add_signed(chrono::Duration::hours(1))
-        .unwrap() 
-        .timestamp() as usize; 
-
+        .unwrap()
+        .timestamp() as usize;
     let claims = Claims {
-        sub: user_id.to_string(), 
-        exp: expiration, 
+        sub: user_id.to_string(),
+        role: role.to_string(),
+        exp: expiration,
     };
 
     encode(
-        &Header::default(), // Use default JWT header settings.
-        &claims,            // Pass in the claims data.
-        &EncodingKey::from_secret(b"secretkey"), // Secret key for encoding.
-    )
-    .unwrap() 
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(b"secretkey"),
+    ).unwrap()
 }
 
 pub fn validate_token(token: &str) -> bool {

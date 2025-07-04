@@ -24,8 +24,8 @@ async fn create_project(
     let now = Utc::now().to_rfc3339();
 
     let result = sqlx::query_as::<_, Project>(
-        "INSERT INTO projects (name, description, created_by, created_at, users_list)
-         VALUES (?, ?, ?, ?, '')
+        "INSERT INTO projects (name, description, created_by, created_at)
+         VALUES (?, ?, ?, ?)
          RETURNING *",
     )
     .bind(&json.name)
@@ -61,17 +61,15 @@ async fn update_project(
 
     let updated_name = json.name.clone().unwrap_or(existing.name);
     let updated_desc = json.description.clone().unwrap_or(existing.description);
-    let updated_users = json.users_list.clone().unwrap_or(existing.users_list);
 
     let result = sqlx::query_as::<_, Project>(
         "UPDATE projects
-         SET name = ?, description = ?, users_list = ?
+         SET name = ?, description = ?
          WHERE project_id = ?
          RETURNING *",
     )
     .bind(updated_name)
     .bind(updated_desc)
-    .bind(updated_users)
     .bind(project_id)
     .fetch_one(pool.get_ref())
     .await;
