@@ -14,12 +14,10 @@ mod state;
 use crate::state::AppState;
 use crate::models::Project;
 use crate::routes::{login::*, bugs::*, projects::*, assign::*};
-use tera::Tera;
-// use routes::ui::*;
 
 #[get("/")]
-async fn index() -> HttpResponse {
-    HttpResponse::Ok().body("✅ Bug Tracker is running!")
+async fn index() -> std::io::Result<NamedFile> {
+    Ok(NamedFile::open("static/login.html")?)
 }
 
 #[get("/login")]
@@ -56,7 +54,6 @@ async fn main() -> std::io::Result<()> {
     db::init_db(&pool).await.expect("DB init failed");
 
     let projects: Arc<Mutex<Vec<Project>>> = Arc::new(Mutex::new(Vec::new()));
-    let tera = Tera::new("templates/**/*").expect("Failed to load templates");
     let app_state = web::Data::new(AppState {
         db: pool.clone(),
         projects: projects.clone(),
@@ -67,7 +64,6 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
-            .app_data(web::Data::new(tera.clone()))
             .service(index)
             .service(login)
             .service(create_new_user)
@@ -90,7 +86,6 @@ async fn main() -> std::io::Result<()> {
             .service(assign_page)
             .service(projects_page)
 
-            // Fallback: serve remaining static files (e.g., CSS)
             .service(Files::new("/", "./static").index_file("login.html"))
     })
     .bind(("127.0.0.1", 8080))?
