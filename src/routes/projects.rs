@@ -1,31 +1,26 @@
 use actix_web::{get, post, patch, delete, web, HttpResponse, Responder};
 use chrono::Utc;
 use crate::state::AppState;
+use crate::auth;
+use crate::auth::Authenticated;
 
 use crate::models::{Project, NewProject, UpdateProjectAdmin, AssignMemberToProjectRequest};
 
-// #[get("/projects")]
-// async fn list_projects(pool: web::Data<SqlitePool>) -> impl Responder {
-//     let result = sqlx::query_as::<_, Project>("SELECT * FROM projects")
-//         .fetch_all(pool.get_ref())
-//         .await;
-
-//     match result {
-//         Ok(projects) => HttpResponse::Ok().json(projects),
-//         Err(err) => HttpResponse::InternalServerError().body(format!("DB error: {}", err)),
-//     }
-// }
 #[get("/projects")]
-async fn list_projects(data: web::Data<AppState>) -> impl Responder {
+async fn list_projects(auth: Authenticated, data: web::Data<AppState>) -> impl Responder {
     let projects = data.projects.lock().unwrap();
     HttpResponse::Ok().json(&*projects)
 }
 
 #[post("/projects")]
 async fn create_project(
+    auth: Authenticated,
     data: web::Data<AppState>,
     json: web::Json<NewProject>,
 ) -> impl Responder {
+    if !auth.is_admin() {
+        return HttpResponse::Forbidden().body("Admin only");
+    }
     let now = Utc::now().to_rfc3339();
     let db = &data.db;
 
@@ -53,10 +48,14 @@ async fn create_project(
 
 #[patch("/projects/{id}")]
 async fn update_project(
+    auth: Authenticated,
     data: web::Data<AppState>,
     path: web::Path<i64>,
     json: web::Json<UpdateProjectAdmin>,
 ) -> impl Responder {
+    if !auth.is_admin() {
+        return HttpResponse::Forbidden().body("Admin only");
+    }
     let project_id = path.into_inner();
     let db = &data.db;
 
@@ -99,9 +98,13 @@ async fn update_project(
 
 #[delete("/projects/{id}")]
 pub async fn delete_project(
+    auth: Authenticated,
     data: web::Data<AppState>,
     path: web::Path<i64>,
 ) -> impl Responder {
+    if !auth.is_admin() {
+        return HttpResponse::Forbidden().body("Admin only");
+    }
     let project_id = path.into_inner();
     let db = &data.db;
 
@@ -126,10 +129,14 @@ pub async fn delete_project(
 
 #[post("/projects/{id}/assign")]
 pub async fn assign_member_to_project(
+    auth: Authenticated,
     data: web::Data<AppState>,
     path: web::Path<i64>,
     json: web::Json<AssignMemberToProjectRequest>,
 ) -> impl Responder {
+    if !auth.is_admin() {
+        return HttpResponse::Forbidden().body("Admin only");
+    }
     let project_id = path.into_inner();
     let db = &data.db;
     let AssignMemberToProjectRequest { username } = json.into_inner();

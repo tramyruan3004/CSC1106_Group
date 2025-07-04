@@ -8,10 +8,11 @@ use crate::db::{
     get_bug_by_id_inner
 };
 use crate::state::AppState;
-
+use crate::auth;
+use crate::auth::Authenticated;
 
 #[post("/bugs/new")]
-async fn create_bug(data: web::Data<AppState>, json: web::Json<NewBug>) -> impl Responder {
+async fn create_bug(auth: Authenticated, data: web::Data<AppState>, json: web::Json<NewBug>) -> impl Responder {
     let db = &data.db;
     let bug_data = json.into_inner(); 
 
@@ -23,7 +24,7 @@ async fn create_bug(data: web::Data<AppState>, json: web::Json<NewBug>) -> impl 
 
 
 #[get("/bugs")]
-async fn get_all_bugs(data: web::Data<AppState>) -> impl Responder {
+async fn get_all_bugs(auth: Authenticated, data: web::Data<AppState>) -> impl Responder {
     let db = &data.db;
     match get_all_bugs_inner(db).await {
         Ok(bugs) => HttpResponse::Ok().json(bugs),
@@ -34,6 +35,7 @@ async fn get_all_bugs(data: web::Data<AppState>) -> impl Responder {
 
 #[get("/bugs/{id}")]
 async fn get_bug(
+    auth: Authenticated,
     data: web::Data<AppState>,
     path: web::Path<i64>,
 ) -> impl Responder {
@@ -49,10 +51,14 @@ async fn get_bug(
 
 #[patch("/bugs/{id}")]
 async fn update_bug(
+    auth: Authenticated,
     data: web::Data<AppState>,
     path: web::Path<i64>,
     json: web::Json<UpdateBugAdmin>,
 ) -> impl Responder {
+    if !(auth.is_admin() || auth.is_developer()) {
+        return HttpResponse::Forbidden().body("UNAUTHORISED ACCESS");
+    }
     let db = &data.db;
     let id = path.into_inner();
     let update_data = json.into_inner();
@@ -70,9 +76,13 @@ async fn update_bug(
 
 #[delete("/bugs/{id}")]
 async fn delete_bug(
+    auth: Authenticated,
     data: web::Data<AppState>,
     path: web::Path<i64>,
 ) -> impl Responder {
+    if !(auth.is_admin() || auth.is_developer()) {
+        return HttpResponse::Forbidden().body("UNAUTHORISED ACCESS");
+    }
     let db = &data.db;
     let id = path.into_inner();
 

@@ -41,7 +41,10 @@ async fn login(data: web::Data<AppState>, body: web::Json<LoginRequest>) -> Resu
 }
 
 #[post("/create_user")]
-async fn create_new_user(data: web::Data<AppState>, form: web::Json<NewUser>) -> Result<impl Responder, Error>  {
+async fn create_new_user(auth: Authenticated, data: web::Data<AppState>, form: web::Json<NewUser>) -> Result<impl Responder, Error>  {
+    if !auth.is_admin() {
+        return Ok(HttpResponse::Forbidden().body("ADMIN ONLY"));
+    }
     let db = &data.db;
     let user_id = Uuid::new_v4().to_string();
     let salted_password = format!("{}{}", SALT, form.password);

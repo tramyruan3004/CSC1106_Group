@@ -7,6 +7,7 @@ curl -X POST http://localhost:8080/login \
   -d '{"username": "username1", "password": "password1"}'
 
 curl -X POST http://localhost:8080/create_user \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json"    \
   -d '{"name": "user2",  "role": "developer", "username": "username2", "password": "password2"}'
 
@@ -14,9 +15,8 @@ curl -X POST http://localhost:8080/create_user \
   -H "Content-Type: application/json"    \
   -d '{"name": "user3",  "role": "staff", "username": "username3", "password": "password3"}'
 
-$ TOKEN=$(curl -s -X POST http://127.0.0.1:8080/login \
->   -H "Content-Type: application/json" \
->   -d '{"username":"username1", "password":"password1"}' | jq -r '.token')
+TOKEN=$(curl -s -X POST http://127.0.0.1:8080/login -H "Content-Type: applicati
+on/json" -d '{"username":"username1", "password":"password1"}' | jq -r '.token')
 
 echo $TOKEN
 
@@ -80,3 +80,4 @@ curl -X POST http://localhost:8080/projects/1/assign   \
   -H "Content-Type: application/json"  \
   -d '{"username": "username1"}'
 
+# list of users:

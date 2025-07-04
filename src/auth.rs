@@ -1,7 +1,7 @@
 use jsonwebtoken::{encode, decode, Header, Validation, EncodingKey, DecodingKey};
 use serde::{Serialize, Deserialize};
 use std::env;
-use uuid::Uuid; // for uuid generation
+use uuid::Uuid;
 use actix_web::{dev::Payload, Error, FromRequest, HttpRequest};
 use futures_util::future::{ready, Ready};
 
@@ -17,6 +17,7 @@ pub struct Authenticated {
     pub user_id: String,
     pub role: String,
 }
+
 impl Authenticated {
     pub fn is_admin(&self) -> bool {
         self.role == "admin"
@@ -27,6 +28,10 @@ impl Authenticated {
     pub fn is_staff(&self) -> bool {
         self.role == "staff"
     }
+}
+
+fn jwt_secret() -> String {
+    env::var("JWT_SECRET").unwrap_or_else(|_| "secretkey".to_string())
 }
 
 impl FromRequest for Authenticated {
@@ -43,7 +48,7 @@ impl FromRequest for Authenticated {
         if let Some(token) = token_opt {
             if let Ok(data) = decode::<Claims>(
                 token,
-                &DecodingKey::from_secret(b"secretkey"),
+                &DecodingKey::from_secret(jwt_secret().as_bytes()),
                 &Validation::default(),
             ) {
                 return ready(Ok(Authenticated {
@@ -71,15 +76,15 @@ pub fn create_token(user_id: Uuid, role: &str) -> String {
     encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(b"secretkey"),
+        &EncodingKey::from_secret(jwt_secret().as_bytes()),
     ).unwrap()
 }
 
 pub fn validate_token(token: &str) -> bool {
     decode::<Claims>(
-        token,                                 
-        &DecodingKey::from_secret(b"secretkey"), 
-        &Validation::default(),               
+        token,
+        &DecodingKey::from_secret(jwt_secret().as_bytes()),
+        &Validation::default(),
     )
-    .is_ok() 
+    .is_ok()
 }

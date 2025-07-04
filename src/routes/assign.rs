@@ -5,11 +5,14 @@ use tera::{Tera, Context};
 use crate::db::update_bug_inner;
 use crate::state::AppState;
 use crate::models::{UpdateBugAdmin, Bug, AssignBugForm};
-
-
+use crate::auth;
+use crate::auth::Authenticated;
 
 #[get("/bugs/assign")]
-pub async fn show_assign_form(tmpl: web::Data<Tera>) -> impl Responder {
+pub async fn show_assign_form(auth: Authenticated, tmpl: web::Data<Tera>) -> impl Responder {
+    if !(auth.is_admin() || auth.is_developer()) {
+        return HttpResponse::Forbidden().body("UNAUTHORISED ACCESS");
+    }
     let ctx = tera::Context::new();
     let rendered = tmpl.render("assign_bug.html", &ctx);
     match rendered {
@@ -19,7 +22,10 @@ pub async fn show_assign_form(tmpl: web::Data<Tera>) -> impl Responder {
 }
 
 #[post("/bugs/assign")]
-pub async fn assign_bug(data: web::Data<AppState>,tmpl: web::Data<Tera>, form: web::Form<AssignBugForm>) -> impl Responder {
+pub async fn assign_bug(auth: Authenticated, data: web::Data<AppState>,tmpl: web::Data<Tera>, form: web::Form<AssignBugForm>) -> impl Responder {
+    if !auth.is_admin() {
+        return HttpResponse::Forbidden().body("ADMIN ONLY");
+    }
     let db = &data.db;  
     let bug_id = form.bug_id;
     let dev_id = form.developer_id.clone();
