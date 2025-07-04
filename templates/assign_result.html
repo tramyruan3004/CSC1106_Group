@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<head><title>Assignment Result</title></head>
+<body>
+  {% if success %}
+    <h2>Bug #{{ bug_id }} successfully assigned to {{ developer_id }}.</h2>
+  {% else %}
+    <h2>Assignment Failed</h2>
+    <p>{{ error }}</p>
+  {% endif %}
+  <a href="/bugs/assign">Back</a>
+</body>
+</html>

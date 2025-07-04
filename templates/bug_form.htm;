@@ -1,0 +1,28 @@
+{% extends "layout.html" %}
+{% block title %}Report a Bug{% endblock %}
+{% block content %}
+<h2>Report a Bug</h2>
+<form method="post" action="/bugs/new">
+  <div class="mb-3">
+    <label class="form-label">Title</label>
+    <input name="title" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Description</label>
+    <textarea name="description" class="form-control" required></textarea>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Reported By</label>
+    <input name="reported_by" class="form-control" required>
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Severity</label>
+    <select name="severity" class="form-select">
+      <option value="low">Low</option>
+      <option value="medium">Medium</option>
+      <option value="high">High</option>
+    </select>
+  </div>
+  <button class="btn btn-success">Submit</button>
+</form>
+{% endblock %}
