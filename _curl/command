@@ -39,3 +39,32 @@ curl -i -X PATCH http://localhost:8080/projects/1 \
     "users_list": "user1,user2,user3"}'
 
 curl -i -X DELETE http://localhost:8080/projects/1
+
+------------------------
+# bugs test
+curl -X POST http://localhost:8080/bugs/new \
+  -H "Content-Type: application/json" \
+  -d '{
+        "title": "Login fails on Safari",
+        "description": "User cannot log in on Safari browser.",
+        "reported_by": "alice@example.com",
+        "bug_type": "RUNTIME ERROR",
+        "severity": "high",
+        "project_id": "PRJ123"
+      }'
+
+curl -i http://localhost:8080/bugs
+
+curl -i http://localhost:8080/bugs/1
+
+curl -i -X PATCH http://localhost:8080/bugs/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+        "description": "Yay better now ",
+        "severity": "low",
+        "bug_type": "UI BUG",
+        "progress_status": "in progress",
+        "developer_id": "dev123"
+      }'
+
+

@@ -22,13 +22,14 @@ pub struct NewBug {
     pub reported_by: String,
     pub bug_type: String, 
     pub severity: String,
+    pub project_id: String,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateBugAdmin {
     pub description: Option<String>,
     pub severity: Option<String>,
-    pub bug_type: String, 
+    pub bug_type: Option<String>, 
     pub progress_status: Option<String>,
     pub developer_id: Option<String>,
 }
