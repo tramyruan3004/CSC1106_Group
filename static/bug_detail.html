@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bug Detail</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<!-- 🌐 Navbar -->
+<nav class="bg-indigo-700 text-white px-6 py-3 shadow">
+  <div class="flex justify-between items-center">
+    <div class="font-bold text-lg">🐞 BugTracker</div>
+    <div class="space-x-4">
+      <a href="dashboard.html" class="hover:underline">Dashboard</a>
+      <a href="bugs.html" class="hover:underline">Bugs</a>
+      <a href="projects.html" class="hover:underline">Projects</a>
+      <a href="assign.html" class="hover:underline">Assign</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Bug Form -->
+<div class="p-6">
+  <h1 class="text-2xl font-bold text-indigo-600 mb-4">Bug Details & Management</h1>
+
+  <div class="bg-white p-6 rounded shadow max-w-xl mx-auto">
+    <input id="bug-id" type="number" class="w-full p-2 border mb-4" placeholder="Enter Bug ID to fetch" />
+    <button onclick="fetchBug()" class="bg-blue-600 text-white px-4 py-2 rounded w-full mb-4">Load Bug</button>
+
+    <div id="bug-fields" class="hidden">
+      <label class="block text-sm font-semibold mb-1">Title (Read-only)</label>
+      <input id="bug-title" class="w-full p-2 border mb-2 bg-gray-100" disabled />
+
+      <label class="block text-sm font-semibold mb-1">Description</label>
+      <textarea id="bug-description" class="w-full p-2 border mb-2"></textarea>
+
+      <label class="block text-sm font-semibold mb-1">Bug Type</label>
+      <input id="bug-type" class="w-full p-2 border mb-2" />
+
+      <label class="block text-sm font-semibold mb-1">Severity</label>
+      <input id="bug-severity" class="w-full p-2 border mb-2" />
+
+      <label class="block text-sm font-semibold mb-1">Progress Status</label>
+      <input id="bug-status" class="w-full p-2 border mb-2" />
+
+      <label class="block text-sm font-semibold mb-1">Assigned Developer ID</label>
+      <input id="bug-dev" class="w-full p-2 border mb-4" />
+
+      <button onclick="updateBug()" class="bg-yellow-500 text-white px-4 py-2 rounded mr-2">Update</button>
+      <button onclick="deleteBug()" class="bg-red-500 text-white px-4 py-2 rounded">Delete</button>
+    </div>
+
+    <pre id="result" class="text-sm bg-gray-50 mt-4 p-2 overflow-auto max-h-60"></pre>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+if (!token) window.location.href = "login.html";
+
+function parseToken() {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return { role: payload.role, username: payload.sub };
+  } catch {
+    return { role: "unknown", username: "unknown" };
+  }
+}
+
+window.onload = () => {
+  const id = new URLSearchParams(window.location.search).get("bug_id");
+  if (id) {
+    document.getElementById("bug-id").value = id;
+    fetchBug();
+  }
+};
+
+async function fetchBug() {
+  const { role, username } = parseToken();
+  const id = document.getElementById("bug-id").value;
+
+  const res = await fetch(`/bugs/${id}`, {
+    headers: { "Authorization": "Bearer " + token }
+  });
+
+  if (res.status === 404) {
+    document.getElementById("result").textContent = "Bug not found.";
+    document.getElementById("bug-fields").classList.add("hidden");
+    return;
+  }
+
+  const data = await res.json();
+
+  document.getElementById("bug-title").value = data.title;
+  document.getElementById("bug-description").value = data.description;
+  document.getElementById("bug-type").value = data.bug_type || "";
+  document.getElementById("bug-severity").value = data.severity;
+  document.getElementById("bug-status").value = data.progress_status || "";
+  document.getElementById("bug-dev").value = data.developer_id || "";
+
+  const isDevAssigned = data.developer_id === username;
+  const canEdit = role === "admin" || (role === "developer" && isDevAssigned);
+  const canDelete = role === "admin";
+
+  document.getElementById("bug-description").disabled = !canEdit;
+  document.getElementById("bug-type").disabled = role !== "admin";
+  document.getElementById("bug-severity").disabled = !canEdit;
+  document.getElementById("bug-status").disabled = !canEdit;
+  document.getElementById("bug-dev").disabled = role !== "admin";
+
+  document.querySelector('button[onclick="updateBug()"]').style.display = canEdit ? "inline-block" : "none";
+  document.querySelector('button[onclick="deleteBug()"]').style.display = canDelete ? "inline-block" : "none";
+
+  document.getElementById("bug-fields").classList.remove("hidden");
+  document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+}
+
+async function updateBug() {
+  const { role } = parseToken();
+  const id = document.getElementById("bug-id").value;
+
+  const body = {
+    severity: document.getElementById("bug-severity").value,
+    progress_status: document.getElementById("bug-status").value
+  };
+
+  if (role === "admin") {
+    body.description = document.getElementById("bug-description").value;
+    body.bug_type = document.getElementById("bug-type").value;
+    body.developer_id = document.getElementById("bug-dev").value;
+  }
+
+  const res = await fetch(`/bugs/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token
+    },
+    body: JSON.stringify(body)
+  });
+
+  const result = await res.json();
+  document.getElementById("result").textContent = "Updated:\n" + JSON.stringify(result, null, 2);
+}
+
+async function deleteBug() {
+  const id = document.getElementById("bug-id").value;
+
+  const res = await fetch(`/bugs/${id}`, {
+    method: "DELETE",
+    headers: { "Authorization": "Bearer " + token }
+  });
+
+  if (res.status === 200) {
+    document.getElementById("result").textContent = "Bug deleted successfully.";
+    document.getElementById("bug-fields").classList.add("hidden");
+  } else {
+    const text = await res.text();
+    document.getElementById("result").textContent = "Delete failed: " + text;
+  }
+}
+</script>
+</body>
+</html>

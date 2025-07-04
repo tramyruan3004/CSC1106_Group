@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Assign Bug</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<!-- 🌐 Navigation Bar -->
+<nav class="bg-indigo-700 text-white px-6 py-3 shadow">
+  <div class="flex justify-between items-center">
+    <div class="font-bold text-lg">🐞 BugTracker</div>
+    <div class="space-x-4">
+      <a href="dashboard.html" class="hover:underline">Dashboard</a>
+      <a href="bugs.html" class="hover:underline">Bugs</a>
+      <a href="projects.html" class="hover:underline">Projects</a>
+      <a href="assign.html" class="hover:underline font-semibold">Assign</a>
+    </div>
+  </div>
+</nav>
+
+<!-- 🧾 Assignment Form -->
+<div class="p-6">
+  <h1 class="text-2xl font-bold text-indigo-600 mb-4">Assign Bug to Developer</h1>
+  <div class="bg-white p-6 rounded shadow w-full max-w-md">
+    <input id="bug-id" class="w-full p-2 border mb-2" type="number" placeholder="Bug ID"/>
+    <input id="dev-id" class="w-full p-2 border mb-2" placeholder="Developer ID"/>
+    <button onclick="assign()" class="bg-yellow-600 text-white px-4 py-2 rounded">Assign</button>
+    <p id="assign-result" class="mt-4 text-sm text-gray-700"></p>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+if (!token) window.location.href = "login.html";
+
+async function assign() {
+  const bugId = document.getElementById("bug-id").value;
+  const devId = document.getElementById("dev-id").value;
+
+  const res = await fetch("/bugs/assign", {
+    method: "POST",
+    headers: {
+      "Authorization": "Bearer " + token,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: new URLSearchParams({
+      bug_id: bugId,
+      developer_id: devId
+    })
+  });
+
+  const result = await res.text();
+
+  if (res.ok && result.toLowerCase().includes("success")) {
+    window.location.href = `bug_detail.html?bug_id=${bugId}`;
+  } else {
+    document.getElementById("assign-result").textContent = result;
+  }
+}
+</script>
+</body>
+</html>

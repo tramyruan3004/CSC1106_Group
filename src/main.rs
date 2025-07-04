@@ -3,6 +3,7 @@ use actix_web::{get, HttpResponse};
 use std::sync::{Arc, Mutex};
 use dotenv::dotenv;
 use std::env;
+use actix_files::{Files, NamedFile};
 
 mod db;
 mod models;
@@ -14,12 +15,38 @@ use crate::state::AppState;
 use crate::models::Project;
 use crate::routes::{login::*, bugs::*, projects::*, assign::*};
 use tera::Tera;
-use routes::ui::*;
+// use routes::ui::*;
 
 #[get("/")]
 async fn index() -> HttpResponse {
     HttpResponse::Ok().body("✅ Bug Tracker is running!")
 }
+
+#[get("/login")]
+async fn login_page() -> std::io::Result<NamedFile> {
+    Ok(NamedFile::open("static/login.html")?)
+}
+
+#[get("/dashboard")]
+async fn dashboard_page() -> std::io::Result<NamedFile> {
+    Ok(NamedFile::open("static/dashboard.html")?)
+}
+
+#[get("/bugs")]
+async fn bugs_page() -> std::io::Result<NamedFile> {
+    Ok(NamedFile::open("static/bugs.html")?)
+}
+
+#[get("/assign")]
+async fn assign_page() -> std::io::Result<NamedFile> {
+    Ok(NamedFile::open("static/assign.html")?)
+}
+
+#[get("/projects")]
+async fn projects_page() -> std::io::Result<NamedFile> {
+    Ok(NamedFile::open("static/projects.html")?)
+}
+
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -40,11 +67,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
-            // .app_data(web::Data::new(pool.clone()))
-            // .app_data(web::Data::new(projects.clone()))
             .app_data(web::Data::new(tera.clone()))
-            // .service(assign_form)
-            // .service(assign_submit)
             .service(index)
             .service(login)
             .service(create_new_user)
@@ -60,17 +83,15 @@ async fn main() -> std::io::Result<()> {
             .service(show_assign_form)
             .service(assign_bug)
             .service(assign_member_to_project)
-            // .service(list_projects)
-            // .service(add_project)
-            // .service(index)
-            // .service(login_form)
-            // .service(login_submit)
-            // .service(bug_form)
-            // .service(bug_submit)
-            // .service(bug_list)
-            // .service(project_page)
-            // .service(project_submit)
+            // New HTML page routes
+            .service(login_page)
+            .service(dashboard_page)
+            .service(bugs_page)
+            .service(assign_page)
+            .service(projects_page)
 
+            // Fallback: serve remaining static files (e.g., CSS)
+            .service(Files::new("/", "./static").index_file("login.html"))
     })
     .bind(("127.0.0.1", 8080))?
     .run()

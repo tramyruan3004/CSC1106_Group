@@ -22,6 +22,7 @@ async fn create_project(
         return HttpResponse::Forbidden().body("Admin only");
     }
     let now = Utc::now().to_rfc3339();
+    let user_id = auth.user_id;
     let db = &data.db;
 
     let result = sqlx::query_as::<_, Project>(
@@ -31,7 +32,7 @@ async fn create_project(
     )
     .bind(&json.name)
     .bind(&json.description)
-    .bind(&json.created_by)
+    .bind(user_id)
     .bind(now)
     .fetch_one(db)
     .await;

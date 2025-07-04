@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Projects - BugTracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<!-- 🌐 Navbar -->
+<nav class="bg-indigo-700 text-white px-6 py-3 shadow">
+  <div class="flex justify-between items-center">
+    <div class="font-bold text-lg">🐞 BugTracker</div>
+    <div class="space-x-4">
+      <a href="dashboard.html" class="hover:underline">Dashboard</a>
+      <a href="bugs.html" class="hover:underline">Bugs</a>
+      <a href="projects.html" class="hover:underline font-semibold">Projects</a>
+      <a href="assign.html" class="hover:underline">Assign</a>
+    </div>
+  </div>
+</nav>
+
+<!-- 🧾 Project Management -->
+<div class="p-6">
+  <h1 class="text-2xl font-bold text-indigo-600 mb-4">Project Management</h1>
+
+  <div id="admin-section" class="hidden bg-white p-4 rounded shadow mb-4">
+    <h2 class="font-semibold mb-2">Create Project (Admin only)</h2>
+    <input id="project-name" class="w-full p-2 border mb-2" placeholder="Project Name"/>
+    <textarea id="project-description" class="w-full p-2 border mb-2" placeholder="Description"></textarea>
+    <button onclick="addProject()" class="bg-green-600 text-white px-4 py-2 rounded">Add Project</button>
+  </div>
+
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="font-semibold mb-2">Projects</h2>
+    <button onclick="fetchProjects()" class="bg-blue-600 text-white px-4 py-2 rounded mb-3">Fetch Projects</button>
+    <div id="project-list" class="space-y-4 mt-2"></div>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+if (!token) window.location.href = "login.html";
+
+let userRole = "";
+
+function parseToken() {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return { role: payload.role || "", username: payload.sub };
+  } catch {
+    return { role: "", username: "" };
+  }
+}
+
+window.onload = () => {
+  const { role } = parseToken();
+  userRole = role;
+  if (role === "admin") {
+    document.getElementById("admin-section").classList.remove("hidden");
+  }
+};
+
+async function addProject() {
+  const name = document.getElementById("project-name").value.trim();
+  const description = document.getElementById("project-description").value.trim();
+
+  const res = await fetch("/projects", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token
+    },
+    body: JSON.stringify({ name, description })
+  });
+
+  const text = await res.text();
+  alert("Response: " + text);
+  fetchProjects();
+}
+
+async function fetchProjects() {
+  const res = await fetch("/projects", {
+    headers: { "Authorization": "Bearer " + token }
+  });
+
+  const data = await res.json();
+  const container = document.getElementById("project-list");
+  container.innerHTML = "";
+
+  data.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "border rounded p-4";
+
+    div.innerHTML = `
+      <h3 class="text-lg font-bold">${p.name}</h3>
+      <p class="text-sm text-gray-700">${p.description}</p>
+      <p class="text-xs mt-1 italic">Project ID: ${p.id}</p>
+      ${userRole === "admin" ? `
+        <textarea id="desc-${p.id}" class="border p-2 w-full mt-2">${p.description}</textarea>
+        <button onclick="updateProject(${p.id})" class="mt-2 bg-yellow-500 text-white px-3 py-1 rounded">Update</button>
+        <button onclick="deleteProject(${p.id})" class="ml-2 bg-red-600 text-white px-3 py-1 rounded">Delete</button>
+      ` : ""}
+    `;
+    container.appendChild(div);
+  });
+}
+
+async function updateProject(id) {
+  const description = document.getElementById(`desc-${id}`).value;
+  const res = await fetch(`/projects/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token
+    },
+    body: JSON.stringify({ description })
+  });
+
+  const text = await res.text();
+  alert("Updated: " + text);
+}
+
+async function deleteProject(id) {
+  if (!confirm("Are you sure you want to delete this project?")) return;
+
+  const res = await fetch(`/projects/${id}`, {
+    method: "DELETE",
+    headers: { "Authorization": "Bearer " + token }
+  });
+
+  const text = await res.text();
+  alert("Deleted: " + text);
+  fetchProjects();
+}
+</script>
+</body>
+</html>

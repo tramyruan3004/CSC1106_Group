@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Login - BugTracker</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<!-- 🌐 Navbar -->
+<nav class="bg-indigo-700 text-white px-6 py-3 shadow">
+  <div class="flex justify-between items-center">
+    <div class="font-bold text-lg">🐞 BugTracker</div>
+    <div class="space-x-4">
+      <a href="dashboard.html" class="hover:underline">Dashboard</a>
+      <a href="bugs.html" class="hover:underline">Bugs</a>
+      <a href="projects.html" class="hover:underline">Projects</a>
+      <a href="assign.html" class="hover:underline">Assign</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Login Form -->
+<div class="flex justify-center items-center h-screen">
+  <div class="bg-white p-8 rounded shadow-md w-full max-w-md mt-[-60px]">
+    <h1 class="text-2xl font-bold text-center text-indigo-600 mb-6">BugTracker Login</h1>
+    <input id="username" type="text" placeholder="Username" class="w-full p-2 border mb-4 rounded" />
+    <input id="password" type="password" placeholder="Password" class="w-full p-2 border mb-4 rounded" />
+    <button onclick="login()" class="w-full bg-indigo-600 text-white p-2 rounded hover:bg-indigo-700">Login</button>
+    <p id="result" class="text-center text-sm mt-4"></p>
+  </div>
+</div>
+
+<script>
+  async function login() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    const res = await fetch("/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+
+    const result = await res.json();
+    document.getElementById("result").textContent = JSON.stringify(result, null, 2);
+
+    if (result.status === "success" && result.token) {
+      localStorage.setItem("token", result.token);
+      window.location.href = "dashboard.html";
+    } else {
+      alert("Login failed. Please check your credentials.");
+    }
+  }
+</script>
+</body>
+</html>

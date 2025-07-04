@@ -58,7 +58,6 @@ pub struct Project {
 pub struct NewProject {
     pub name: String,
     pub description: String,
-    pub created_by: String,
 }
 
 #[derive(Debug, Deserialize)]
