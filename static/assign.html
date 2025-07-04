@@ -6,35 +6,62 @@
   <title>Assign Bug</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-100 min-h-screen flex flex-col">
 
 <!-- 🌐 Navigation Bar -->
 <nav class="bg-indigo-700 text-white px-6 py-3 shadow">
   <div class="flex justify-between items-center">
     <div class="font-bold text-lg">🐞 BugTracker</div>
-    <div class="space-x-4">
+    <div class="space-x-4 flex items-center" id="nav-links">
       <a href="dashboard.html" class="hover:underline">Dashboard</a>
       <a href="bugs.html" class="hover:underline">Bugs</a>
       <a href="projects.html" class="hover:underline">Projects</a>
       <a href="assign.html" class="hover:underline font-semibold">Assign</a>
+      <!-- Users tab (admin only) injected below -->
+      <button onclick="logout()" class="ml-4 bg-white text-indigo-700 font-semibold px-3 py-1 rounded hover:bg-gray-100">Logout</button>
     </div>
   </div>
 </nav>
 
-<!-- 🧾 Assignment Form -->
-<div class="p-6">
-  <h1 class="text-2xl font-bold text-indigo-600 mb-4">Assign Bug to Developer</h1>
+<!-- 🧾 Assignment Form Centered -->
+<div class="flex-grow flex items-center justify-center p-6">
   <div class="bg-white p-6 rounded shadow w-full max-w-md">
+    <h1 class="text-2xl font-bold text-indigo-600 mb-4 text-center">Quick Assign Bug to Developer</h1>
     <input id="bug-id" class="w-full p-2 border mb-2" type="number" placeholder="Bug ID"/>
     <input id="dev-id" class="w-full p-2 border mb-2" placeholder="Developer ID"/>
-    <button onclick="assign()" class="bg-yellow-600 text-white px-4 py-2 rounded">Assign</button>
-    <p id="assign-result" class="mt-4 text-sm text-gray-700"></p>
+    <button onclick="assign()" class="bg-yellow-600 text-white px-4 py-2 rounded w-full">Assign</button>
+    <p id="assign-result" class="mt-4 text-sm text-center text-gray-700"></p>
   </div>
 </div>
 
 <script>
 const token = localStorage.getItem("token");
 if (!token) window.location.href = "login.html";
+
+// Extract user role from JWT
+const payload = (() => {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return {};
+  }
+})();
+
+const role = payload.role || "";
+
+// Add "Users" tab for admin
+if (role === "admin") {
+  const usersTab = document.createElement("a");
+  usersTab.href = "users.html";
+  usersTab.textContent = "Users";
+  usersTab.className = "hover:underline";
+  document.getElementById("nav-links").prepend(usersTab);
+}
+
+function logout() {
+  localStorage.removeItem("token");
+  window.location.href = "login.html";
+}
 
 async function assign() {
   const bugId = document.getElementById("bug-id").value;

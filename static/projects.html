@@ -12,11 +12,12 @@
 <nav class="bg-indigo-700 text-white px-6 py-3 shadow">
   <div class="flex justify-between items-center">
     <div class="font-bold text-lg">🐞 BugTracker</div>
-    <div class="space-x-4">
+    <div class="space-x-4 flex items-center" id="nav-links">
       <a href="dashboard.html" class="hover:underline">Dashboard</a>
       <a href="bugs.html" class="hover:underline">Bugs</a>
       <a href="projects.html" class="hover:underline font-semibold">Projects</a>
       <a href="assign.html" class="hover:underline">Assign</a>
+      <button onclick="logout()" class="ml-4 bg-white text-indigo-700 font-semibold px-3 py-1 rounded hover:bg-gray-100">Logout</button>
     </div>
   </div>
 </nav>
@@ -25,6 +26,7 @@
 <div class="p-6">
   <h1 class="text-2xl font-bold text-indigo-600 mb-4">Project Management</h1>
 
+  <!-- Admin-Only Project Creation -->
   <div id="admin-section" class="hidden bg-white p-4 rounded shadow mb-4">
     <h2 class="font-semibold mb-2">Create Project (Admin only)</h2>
     <input id="project-name" class="w-full p-2 border mb-2" placeholder="Project Name"/>
@@ -32,6 +34,7 @@
     <button onclick="addProject()" class="bg-green-600 text-white px-4 py-2 rounded">Add Project</button>
   </div>
 
+  <!-- Project List -->
   <div class="bg-white p-4 rounded shadow">
     <h2 class="font-semibold mb-2">Projects</h2>
     <button onclick="fetchProjects()" class="bg-blue-600 text-white px-4 py-2 rounded mb-3">Fetch Projects</button>
@@ -39,45 +42,105 @@
   </div>
 </div>
 
+<!-- ✅ Custom Modal -->
+<div id="project-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50 hidden">
+  <div class="bg-white rounded shadow-xl max-w-md w-full p-6">
+    <h2 class="text-xl font-semibold text-green-700 mb-2">✅ Project Created Successfully</h2>
+    <div id="project-info" class="text-sm text-gray-700 whitespace-pre-line mb-4"></div>
+    <div class="text-right">
+      <button onclick="closeModal()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const token = localStorage.getItem("token");
 if (!token) window.location.href = "login.html";
 
-let userRole = "";
-
-function parseToken() {
+const payload = (() => {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return { role: payload.role || "", username: payload.sub };
+    return JSON.parse(atob(token.split('.')[1]));
   } catch {
-    return { role: "", username: "" };
+    return {};
   }
+})();
+
+const userRole = payload.role || "";
+const username = payload.sub || "";
+
+// Show "Users" tab in navbar if admin
+if (userRole === "admin") {
+  const usersTab = document.createElement("a");
+  usersTab.href = "users.html";
+  usersTab.textContent = "Users";
+  usersTab.className = "hover:underline";
+  document.getElementById("nav-links").prepend(usersTab);
+  document.getElementById("admin-section").classList.remove("hidden");
 }
 
-window.onload = () => {
-  const { role } = parseToken();
-  userRole = role;
-  if (role === "admin") {
-    document.getElementById("admin-section").classList.remove("hidden");
-  }
-};
+function logout() {
+  localStorage.removeItem("token");
+  window.location.href = "login.html";
+}
 
 async function addProject() {
   const name = document.getElementById("project-name").value.trim();
   const description = document.getElementById("project-description").value.trim();
 
-  const res = await fetch("/projects", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + token
-    },
-    body: JSON.stringify({ name, description })
-  });
+  if (!name || !description) {
+    showModal("❌ Both name and description are required.");
+    return;
+  }
 
-  const text = await res.text();
-  alert("Response: " + text);
-  fetchProjects();
+  try {
+    const res = await fetch("/projects", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ name, description })
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.project_id) {
+      const info = `
+Project ID: ${data.project_id}
+Name: ${data.name}
+Description: ${data.description}
+Created By: ${data.created_by}
+Created At: ${data.created_at}`;
+      showModal(info, true);
+      document.getElementById("project-name").value = "";
+      document.getElementById("project-description").value = "";
+      fetchProjects();
+    } else {
+      showModal("❌ Failed to create project.\n" + (data.message || JSON.stringify(data)));
+    }
+  } catch (err) {
+    showModal("❌ Error: " + err.message);
+  }
+}
+
+function showModal(message, success = false) {
+  const modal = document.getElementById("project-modal");
+  const infoBox = document.getElementById("project-info");
+
+  infoBox.textContent = message;
+  modal.classList.remove("hidden");
+
+  if (!success) {
+    infoBox.classList.remove("text-gray-700");
+    infoBox.classList.add("text-red-700");
+  } else {
+    infoBox.classList.remove("text-red-700");
+    infoBox.classList.add("text-gray-700");
+  }
+}
+
+function closeModal() {
+  document.getElementById("project-modal").classList.add("hidden");
 }
 
 async function fetchProjects() {
@@ -95,14 +158,22 @@ async function fetchProjects() {
 
     div.innerHTML = `
       <h3 class="text-lg font-bold">${p.name}</h3>
-      <p class="text-sm text-gray-700">${p.description}</p>
-      <p class="text-xs mt-1 italic">Project ID: ${p.id}</p>
+      <p class="text-sm text-gray-700 mb-2">${p.description}</p>
+      <p class="text-xs italic mb-2">Project ID: ${p.project_id}</p>
+
       ${userRole === "admin" ? `
-        <textarea id="desc-${p.id}" class="border p-2 w-full mt-2">${p.description}</textarea>
-        <button onclick="updateProject(${p.id})" class="mt-2 bg-yellow-500 text-white px-3 py-1 rounded">Update</button>
-        <button onclick="deleteProject(${p.id})" class="ml-2 bg-red-600 text-white px-3 py-1 rounded">Delete</button>
+        <textarea id="desc-${p.project_id}" class="border p-2 w-full mt-2">${p.description}</textarea>
+        <button onclick="updateProject(${p.project_id})" class="mt-2 bg-yellow-500 text-white px-3 py-1 rounded">Update</button>
+        <button onclick="deleteProject(${p.project_id})" class="ml-2 bg-red-600 text-white px-3 py-1 rounded">Delete</button>
+
+        <div class="mt-4">
+          <input id="assign-username-${p.project_id}" class="p-2 border w-2/3" placeholder="Username to assign" />
+          <button onclick="assignMember(${p.project_id})" class="bg-indigo-600 text-white px-3 py-1 rounded ml-2">Add Member</button>
+          <p id="assign-result-${p.project_id}" class="text-sm mt-1 text-gray-600"></p>
+        </div>
       ` : ""}
     `;
+
     container.appendChild(div);
   });
 }
@@ -119,7 +190,7 @@ async function updateProject(id) {
   });
 
   const text = await res.text();
-  alert("Updated: " + text);
+  showModal("📌 Project Updated:\n" + text, true);
 }
 
 async function deleteProject(id) {
@@ -131,8 +202,31 @@ async function deleteProject(id) {
   });
 
   const text = await res.text();
-  alert("Deleted: " + text);
+  showModal("🗑️ Project Deleted:\n" + text, true);
   fetchProjects();
+}
+
+async function assignMember(projectId) {
+  const usernameInput = document.getElementById(`assign-username-${projectId}`);
+  const resultBox = document.getElementById(`assign-result-${projectId}`);
+  const username = usernameInput.value.trim();
+
+  if (!username) {
+    resultBox.textContent = "Please enter a username.";
+    return;
+  }
+
+  const res = await fetch(`/projects/${projectId}/assign`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token
+    },
+    body: JSON.stringify({ username })
+  });
+
+  const result = await res.text();
+  resultBox.textContent = result;
 }
 </script>
 </body>

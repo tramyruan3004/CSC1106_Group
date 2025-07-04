@@ -12,19 +12,21 @@
 <nav class="bg-indigo-700 text-white px-6 py-3 shadow">
   <div class="flex justify-between items-center">
     <div class="font-bold text-lg">🐞 BugTracker</div>
-    <div class="space-x-4">
+    <div class="space-x-4 flex items-center" id="nav-links">
       <a href="dashboard.html" class="hover:underline font-semibold">Dashboard</a>
       <a href="bugs.html" class="hover:underline">Bugs</a>
       <a href="projects.html" class="hover:underline">Projects</a>
       <a href="assign.html" class="hover:underline">Assign</a>
+      <!-- Users tab dynamically inserted -->
+      <button onclick="logout()" class="ml-4 bg-white text-indigo-700 font-semibold px-3 py-1 rounded hover:bg-gray-100">Logout</button>
     </div>
   </div>
 </nav>
 
-<!-- 💻 Dashboard Content -->
+<!-- 🧭 Dashboard Cards -->
 <div class="max-w-4xl mx-auto py-10 px-6">
   <h1 class="text-3xl font-bold text-indigo-700 mb-8 text-center">BugTracker Dashboard</h1>
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="card-grid">
     <a href="bugs.html" class="block p-6 bg-white shadow-md rounded-xl hover:bg-indigo-50">
       <h2 class="text-xl font-semibold text-indigo-600">Manage Bugs</h2>
       <p class="text-sm mt-2">Create, view, and update bug reports</p>
@@ -37,8 +39,47 @@
       <h2 class="text-xl font-semibold text-indigo-600">Assign Bug</h2>
       <p class="text-sm mt-2">Assign bugs to developers</p>
     </a>
+    <!-- Users card inserted dynamically below -->
   </div>
 </div>
+
+<script>
+const token = localStorage.getItem("token");
+if (!token) window.location.href = "login.html";
+
+const payload = (() => {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return {};
+  }
+})();
+
+const role = payload.role || "";
+
+// Inject 'Users' tab in navbar and card if admin
+if (role === "admin") {
+  const usersTab = document.createElement("a");
+  usersTab.href = "users.html";
+  usersTab.textContent = "Users";
+  usersTab.className = "hover:underline";
+  document.getElementById("nav-links").prepend(usersTab);
+
+  const usersCard = document.createElement("a");
+  usersCard.href = "users.html";
+  usersCard.className = "block p-6 bg-white shadow-md rounded-xl hover:bg-indigo-50";
+  usersCard.innerHTML = `
+    <h2 class="text-xl font-semibold text-indigo-600">User Management</h2>
+    <p class="text-sm mt-2">Create and manage admin, dev, and staff accounts</p>
+  `;
+  document.getElementById("card-grid").appendChild(usersCard);
+}
+
+function logout() {
+  localStorage.removeItem("token");
+  window.location.href = "login.html";
+}
+</script>
 
 </body>
 </html>

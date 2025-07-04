@@ -12,47 +12,128 @@
 <nav class="bg-indigo-700 text-white px-6 py-3 shadow">
   <div class="flex justify-between items-center">
     <div class="font-bold text-lg">🐞 BugTracker</div>
-    <div class="space-x-4">
-      <a href="dashboard.html" class="hover:underline">Dashboard</a>
-      <a href="bugs.html" class="hover:underline">Bugs</a>
-      <a href="projects.html" class="hover:underline">Projects</a>
-      <a href="assign.html" class="hover:underline">Assign</a>
+    <div class="space-x-4" id="nav-links">
+      <a href="dashboard.html" class="hover:underline pointer-events-none opacity-50">Dashboard</a>
+      <a href="bugs.html" class="hover:underline pointer-events-none opacity-50">Bugs</a>
+      <a href="projects.html" class="hover:underline pointer-events-none opacity-50">Projects</a>
+      <a href="assign.html" class="hover:underline pointer-events-none opacity-50">Assign</a>
     </div>
   </div>
 </nav>
 
 <!-- Login Form -->
 <div class="flex justify-center items-center h-screen">
-  <div class="bg-white p-8 rounded shadow-md w-full max-w-md mt-[-60px]">
+  <div class="bg-white p-8 rounded shadow-md w-full max-w-md mt-[-60px] relative">
     <h1 class="text-2xl font-bold text-center text-indigo-600 mb-6">BugTracker Login</h1>
     <input id="username" type="text" placeholder="Username" class="w-full p-2 border mb-4 rounded" />
-    <input id="password" type="password" placeholder="Password" class="w-full p-2 border mb-4 rounded" />
+
+    <div class="relative mb-4">
+      <input id="password" type="password" placeholder="Password" class="w-full p-2 border rounded pr-10" />
+      <button type="button" onclick="togglePassword()"
+        class="absolute right-2 top-2 text-sm text-indigo-600 hover:underline">Show</button>
+    </div>
+
+    <label class="inline-flex items-center mb-4">
+      <input type="checkbox" id="remember" class="mr-2"> <span class="text-sm">Remember me</span>
+    </label>
+
     <button onclick="login()" class="w-full bg-indigo-600 text-white p-2 rounded hover:bg-indigo-700">Login</button>
-    <p id="result" class="text-center text-sm mt-4"></p>
+    <p id="result" class="text-center text-sm mt-4 text-gray-600"></p>
+
+    <!-- Spinner -->
+    <div id="spinner" class="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center hidden">
+      <svg class="animate-spin h-8 w-8 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none"
+        viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- ❌ Error Popup Modal -->
+<div id="error-modal"
+  class="fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded shadow-md hidden z-50 max-w-sm">
+  <div class="flex justify-between items-start">
+    <div id="error-message" class="text-sm mr-4">Login failed</div>
+    <button onclick="closeError()" class="text-red-500 font-bold hover:text-red-700">&times;</button>
   </div>
 </div>
 
 <script>
-  async function login() {
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
+function togglePassword() {
+  const pwd = document.getElementById("password");
+  const btn = pwd.nextElementSibling;
+  if (pwd.type === "password") {
+    pwd.type = "text";
+    btn.textContent = "Hide";
+  } else {
+    pwd.type = "password";
+    btn.textContent = "Show";
+  }
+}
 
+async function login() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+
+  document.getElementById("spinner").classList.remove("hidden");
+  document.getElementById("result").textContent = "";
+
+  try {
     const res = await fetch("/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password })
     });
 
+    if (res.status === 401) {
+      showError("Invalid username or password.");
+      disableNavbarLinks();
+      return;
+    }
+
+    if (!res.ok) {
+      const errMsg = await res.text();
+      showError(errMsg || "Unexpected error occurred.");
+      disableNavbarLinks();
+      return;
+    }
+
     const result = await res.json();
-    document.getElementById("result").textContent = JSON.stringify(result, null, 2);
 
     if (result.status === "success" && result.token) {
+      // Always use localStorage for compatibility across pages
       localStorage.setItem("token", result.token);
       window.location.href = "dashboard.html";
     } else {
-      alert("Login failed. Please check your credentials.");
+      showError("Login failed. Please check your credentials.");
+      disableNavbarLinks();
     }
+
+  } catch (err) {
+    showError("Network error. Server unreachable.");
+    disableNavbarLinks();
+  } finally {
+    document.getElementById("spinner").classList.add("hidden");
   }
+}
+
+function showError(message) {
+  document.getElementById("error-message").textContent = message;
+  document.getElementById("error-modal").classList.remove("hidden");
+}
+
+function closeError() {
+  document.getElementById("error-modal").classList.add("hidden");
+}
+
+function disableNavbarLinks() {
+  const nav = document.getElementById("nav-links");
+  Array.from(nav.getElementsByTagName("a")).forEach(link => {
+    link.classList.add("pointer-events-none", "opacity-50");
+  });
+}
 </script>
 </body>
 </html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>User Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+
+<!-- 🌐 Navbar -->
+<nav class="bg-indigo-700 text-white px-6 py-3 shadow">
+  <div class="flex justify-between items-center">
+    <div class="font-bold text-lg">🐞 BugTracker</div>
+    <div class="space-x-4 flex items-center" id="nav-links">
+      <a href="dashboard.html" class="hover:underline">Dashboard</a>
+      <a href="bugs.html" class="hover:underline">Bugs</a>
+      <a href="projects.html" class="hover:underline">Projects</a>
+      <a href="assign.html" class="hover:underline">Assign</a>
+      <!-- Users tab injected if admin -->
+      <button onclick="logout()" class="ml-4 bg-white text-indigo-700 font-semibold px-3 py-1 rounded hover:bg-gray-100">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<!-- 👤 User Management Content -->
+<div class="p-6 max-w-xl mx-auto" id="user-form-container" style="display: none;">
+  <h1 class="text-2xl font-bold text-indigo-600 mb-4">Create New User (Admin Only)</h1>
+
+  <div class="bg-white p-6 rounded shadow">
+    <input id="name" class="w-full p-2 border mb-3" placeholder="Full Name" />
+    <input id="username" class="w-full p-2 border mb-3" placeholder="Username" />
+    <input id="password" type="password" class="w-full p-2 border mb-3" placeholder="Password" />
+    
+    <select id="role" class="w-full p-2 border mb-4">
+      <option value="">Select Role</option>
+      <option value="admin">Admin</option>
+      <option value="developer">Developer</option>
+      <option value="staff">Staff</option>
+    </select>
+
+    <button onclick="createUser()" class="bg-green-600 text-white px-4 py-2 rounded w-full">Create User</button>
+  </div>
+</div>
+
+<div id="access-denied" class="p-6 text-center text-red-600 font-bold hidden">Access Denied: Admins Only</div>
+
+<!-- 🔔 Popup Message -->
+<div id="popup" class="fixed top-5 right-5 bg-indigo-100 border border-indigo-400 text-indigo-800 px-4 py-3 rounded shadow hidden z-50 max-w-sm">
+  <div class="flex justify-between items-center">
+    <span id="popup-message" class="text-sm"></span>
+    <button onclick="closePopup()" class="text-indigo-500 font-bold hover:text-indigo-700 ml-4">&times;</button>
+  </div>
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+if (!token) window.location.href = "login.html";
+
+// Decode token
+const payload = (() => {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch {
+    return {};
+  }
+})();
+const role = payload.role || "";
+
+// Show form if admin
+if (role === "admin") {
+  const usersTab = document.createElement("a");
+  usersTab.href = "users.html";
+  usersTab.textContent = "Users";
+  usersTab.className = "hover:underline font-semibold";
+  document.getElementById("nav-links").prepend(usersTab);
+  document.getElementById("user-form-container").style.display = "block";
+} else {
+  document.getElementById("access-denied").style.display = "block";
+}
+
+function logout() {
+  localStorage.removeItem("token");
+  window.location.href = "login.html";
+}
+
+function showPopup(message, isError = false) {
+  const popup = document.getElementById("popup");
+  const msg = document.getElementById("popup-message");
+  popup.classList.remove("bg-indigo-100", "text-indigo-800", "border-indigo-400");
+  popup.classList.remove("bg-red-100", "text-red-800", "border-red-400");
+
+  if (isError) {
+    popup.classList.add("bg-red-100", "text-red-800", "border-red-400");
+  } else {
+    popup.classList.add("bg-indigo-100", "text-indigo-800", "border-indigo-400");
+  }
+
+  msg.textContent = message;
+  popup.classList.remove("hidden");
+}
+
+function closePopup() {
+  document.getElementById("popup").classList.add("hidden");
+}
+
+<!-- inside <script> -->
+async function createUser() {
+  const name = document.getElementById("name").value.trim();
+  const username = document.getElementById("username").value.trim();
+  const password = document.getElementById("password").value.trim();
+  const role = document.getElementById("role").value;
+
+  if (!name || !username || !password || !role) {
+    showPopup("All fields are required.", true);
+    return;
+  }
+
+  try {
+    const res = await fetch("/create_user", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ name, username, password, role })
+    });
+
+    if (!res.ok) {
+      const msg = await res.text();
+      showPopup("Failed to create user: " + msg, true);
+    } else {
+      showPopup("✅ User created successfully.");
+
+      document.getElementById("name").value = "";
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+      document.getElementById("role").selectedIndex = 0;
+    }
+  } catch (err) {
+    showPopup("Server error. Try again later.", true);
+  }
+}
+
+function showPopup(message, isError = false) {
+  const popup = document.getElementById("popup");
+  const msg = document.getElementById("popup-message");
+
+  popup.classList.remove("bg-indigo-100", "text-indigo-800", "border-indigo-400");
+  popup.classList.remove("bg-red-100", "text-red-800", "border-red-400");
+
+  if (isError) {
+    popup.classList.add("bg-red-100", "text-red-800", "border-red-400");
+  } else {
+    popup.classList.add("bg-indigo-100", "text-indigo-800", "border-indigo-400");
+  }
+
+  msg.textContent = message;
+  popup.classList.remove("hidden");
+
+  setTimeout(closePopup, 4000);
+}
+
+</script>
+</body>
+</html>
