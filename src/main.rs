@@ -10,9 +10,11 @@ mod models;
 mod routes;
 mod auth;
 mod state;
+mod logger;
 
 use crate::state::AppState;
 use crate::models::Project;
+use logger::Logger;
 use crate::routes::{login::*, bugs::*, projects::*, assign::*};
 
 #[get("/")]
@@ -48,7 +50,7 @@ async fn projects_page() -> std::io::Result<NamedFile> {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    dotenv().ok();
+    dotenv::dotenv().ok(); // Load .env
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL not set");
     let pool = sqlx::SqlitePool::connect(&db_url).await.expect("Failed to connect to DB");
     db::init_db(&pool).await.expect("DB init failed");
@@ -63,6 +65,7 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(move || {
         App::new()
+            .wrap(Logger)
             .app_data(app_state.clone())
             .service(index)
             .service(login)
