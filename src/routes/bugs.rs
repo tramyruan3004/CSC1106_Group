@@ -10,23 +10,32 @@ use crate::db::{
 
 use sqlx::SqlitePool;
 
-//#[post("/bugs/new")]
-// async fn create_bug(pool: web::Data<SqlitePool>, json: web::Json<NewBug>) -> impl Responder {
-//     match db::insert_bug(&pool, json.0).await {
-//         Ok(bug) => HttpResponse::Ok().json(bug),
-//         Err(e) => HttpResponse::InternalServerError().body(format!("Failed: {}", e)),
-//     }
-// }
-
 #[post("/bugs/new")]
-async fn create_bug(pool: web::Data<SqlitePool>, json: web::Json<NewBug>) -> impl Responder {
-    let bug_data = json.into_inner(); 
+async fn create_bug(
+    pool: web::Data<SqlitePool>,
+    json: web::Json<NewBug>,
+) -> impl Responder {
+    let bug_data = json.into_inner();
+
+    if bug_data.title.trim().is_empty() {
+        return HttpResponse::BadRequest().body("Title is required.");
+    }
+    if bug_data.description.trim().is_empty() {
+        return HttpResponse::BadRequest().body("Description is required.");
+    }
+    if bug_data.reported_by.trim().is_empty() {
+        return HttpResponse::BadRequest().body("Reporter email is required.");
+    }
+    if bug_data.severity.trim().is_empty() {
+        return HttpResponse::BadRequest().body("Severity is required.");
+    }
 
     match create_bug_inner(pool.get_ref(), bug_data).await {
         Ok(bug) => HttpResponse::Ok().json(bug),
         Err(e) => HttpResponse::InternalServerError().body(format!("Failed: {}", e)),
     }
 }
+
 
 
 #[get("/bugs")]
