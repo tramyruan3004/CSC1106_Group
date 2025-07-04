@@ -76,7 +76,7 @@ curl -X POST http://localhost:8080/bugs/assign \
   
 -----------------
 # assign mem to proj test
-curl -X POST http://localhost:8080/projects/1/assign   -H "Content-Type: application/json"   -d '{
-    "username": "username1" 
-}'
+curl -X POST http://localhost:8080/projects/1/assign   \
+  -H "Content-Type: application/json"  \
+  -d '{"username": "username1"}'
 

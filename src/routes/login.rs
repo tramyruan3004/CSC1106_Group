@@ -2,7 +2,7 @@ use actix_web::{get, post, patch, delete, web, HttpResponse, Responder, Error};
 use bcrypt::{hash, verify, DEFAULT_COST};
 use serde_json::json;
 use uuid::Uuid;
-use sqlx::SqlitePool;
+use crate::state::AppState;
 
 use crate::models::{User,LoginRequest, NewUser};
 use crate::auth;
@@ -12,14 +12,15 @@ const SALT: &str = "bugtrack2025";
 
 
 #[post("/login")]
-async fn login(pool: web::Data<SqlitePool>, body: web::Json<LoginRequest>) -> Result<impl Responder, Error>  {
+async fn login(data: web::Data<AppState>, body: web::Json<LoginRequest>) -> Result<impl Responder, Error>  {
+    let db = &data.db;
     let username = &body.username;
     let password = &body.password;
     let salted = format!("{}{}", SALT, password);
 
     let user = sqlx::query_as::<_, User>("SELECT user_id, name, role, username, hashed_password FROM users WHERE username = ?")
         .bind(username)
-        .fetch_optional(pool.get_ref())
+        .fetch_optional(db)
         .await
         .map_err(actix_web::error::ErrorInternalServerError)?;
 
@@ -40,7 +41,8 @@ async fn login(pool: web::Data<SqlitePool>, body: web::Json<LoginRequest>) -> Re
 }
 
 #[post("/create_user")]
-async fn create_new_user(pool: web::Data<SqlitePool>, form: web::Json<NewUser>) -> Result<impl Responder, Error>  {
+async fn create_new_user(data: web::Data<AppState>, form: web::Json<NewUser>) -> Result<impl Responder, Error>  {
+    let db = &data.db;
     let user_id = Uuid::new_v4().to_string();
     let salted_password = format!("{}{}", SALT, form.password);
     let hashed = hash(&salted_password, DEFAULT_COST)
@@ -55,7 +57,7 @@ async fn create_new_user(pool: web::Data<SqlitePool>, form: web::Json<NewUser>) 
     .bind(&form.role)
     .bind(&form.username)
     .bind(&hashed)
-    .execute(pool.get_ref())
+    .execute(db)
     .await
     .map_err(actix_web::error::ErrorInternalServerError)?;
 

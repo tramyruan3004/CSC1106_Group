@@ -7,15 +7,15 @@ use crate::db::{
     delete_bug_inner,
     get_bug_by_id_inner
 };
-
-use sqlx::SqlitePool;
+use crate::state::AppState;
 
 
 #[post("/bugs/new")]
-async fn create_bug(pool: web::Data<SqlitePool>, json: web::Json<NewBug>) -> impl Responder {
+async fn create_bug(data: web::Data<AppState>, json: web::Json<NewBug>) -> impl Responder {
+    let db = &data.db;
     let bug_data = json.into_inner(); 
 
-    match create_bug_inner(pool.get_ref(), bug_data).await {
+    match create_bug_inner(db, bug_data).await {
         Ok(bug) => HttpResponse::Ok().json(bug),
         Err(e) => HttpResponse::InternalServerError().body(format!("Failed: {}", e)),
     }
@@ -23,8 +23,9 @@ async fn create_bug(pool: web::Data<SqlitePool>, json: web::Json<NewBug>) -> imp
 
 
 #[get("/bugs")]
-async fn get_all_bugs(pool: web::Data<SqlitePool>) -> impl Responder {
-    match get_all_bugs_inner(pool.get_ref()).await {
+async fn get_all_bugs(data: web::Data<AppState>) -> impl Responder {
+    let db = &data.db;
+    match get_all_bugs_inner(db).await {
         Ok(bugs) => HttpResponse::Ok().json(bugs),
         Err(e) => HttpResponse::InternalServerError().body(format!("Error: {}", e)),
     }
@@ -33,12 +34,13 @@ async fn get_all_bugs(pool: web::Data<SqlitePool>) -> impl Responder {
 
 #[get("/bugs/{id}")]
 async fn get_bug(
-    pool: web::Data<SqlitePool>,
+    data: web::Data<AppState>,
     path: web::Path<i64>,
 ) -> impl Responder {
+    let db = &data.db;
     let bug_id = path.into_inner();
 
-    match get_bug_by_id_inner(pool.get_ref(), bug_id).await {
+    match get_bug_by_id_inner(db, bug_id).await {
         Ok(bug) => HttpResponse::Ok().json(bug),
         Err(_) => HttpResponse::NotFound().body("Bug not found"),
     }
@@ -47,14 +49,15 @@ async fn get_bug(
 
 #[patch("/bugs/{id}")]
 async fn update_bug(
-    pool: web::Data<SqlitePool>,
+    data: web::Data<AppState>,
     path: web::Path<i64>,
     json: web::Json<UpdateBugAdmin>,
 ) -> impl Responder {
+    let db = &data.db;
     let id = path.into_inner();
     let update_data = json.into_inner();
 
-    match update_bug_inner(pool.get_ref(), id, update_data).await {
+    match update_bug_inner(db, id, update_data).await {
         Ok(updated) => HttpResponse::Ok().json(updated),
         Err(e) => {
             println!("Update failed: {}", e);
@@ -67,12 +70,13 @@ async fn update_bug(
 
 #[delete("/bugs/{id}")]
 async fn delete_bug(
-    pool: web::Data<SqlitePool>,
+    data: web::Data<AppState>,
     path: web::Path<i64>,
 ) -> impl Responder {
+    let db = &data.db;
     let id = path.into_inner();
 
-    match delete_bug_inner(pool.get_ref(), id).await {
+    match delete_bug_inner(db, id).await {
         Ok(result) => {
             if result.rows_affected() == 0 {
                 HttpResponse::NotFound().body("Bug not found")

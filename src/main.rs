@@ -8,7 +8,9 @@ mod db;
 mod models;
 mod routes;
 mod auth;
+mod state;
 
+use crate::state::AppState;
 use crate::models::Project;
 use crate::routes::{login::*, bugs::*, projects::*, assign::*};
 use tera::Tera;
@@ -28,16 +30,22 @@ async fn main() -> std::io::Result<()> {
 
     let projects: Arc<Mutex<Vec<Project>>> = Arc::new(Mutex::new(Vec::new()));
     let tera = Tera::new("templates/**/*").expect("Failed to load templates");
+    let app_state = web::Data::new(AppState {
+        db: pool.clone(),
+        projects: projects.clone(),
+    });
 
     println!("🚀 Server running on http://localhost:8080");
 
     HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::new(pool.clone()))
-            .app_data(web::Data::new(projects.clone()))
+            .app_data(app_state.clone())
+            // .app_data(web::Data::new(pool.clone()))
+            // .app_data(web::Data::new(projects.clone()))
             .app_data(web::Data::new(tera.clone()))
             // .service(assign_form)
             // .service(assign_submit)
+            .service(index)
             .service(login)
             .service(create_new_user)
             .service(list_projects)

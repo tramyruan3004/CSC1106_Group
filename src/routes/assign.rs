@@ -3,7 +3,9 @@ use sqlx::SqlitePool;
 use tera::{Tera, Context};
 
 use crate::db::update_bug_inner;
+use crate::state::AppState;
 use crate::models::{UpdateBugAdmin, Bug, AssignBugForm};
+
 
 
 #[get("/bugs/assign")]
@@ -17,7 +19,8 @@ pub async fn show_assign_form(tmpl: web::Data<Tera>) -> impl Responder {
 }
 
 #[post("/bugs/assign")]
-pub async fn assign_bug(pool: web::Data<SqlitePool>,tmpl: web::Data<Tera>, form: web::Form<AssignBugForm>) -> impl Responder {
+pub async fn assign_bug(data: web::Data<AppState>,tmpl: web::Data<Tera>, form: web::Form<AssignBugForm>) -> impl Responder {
+    let db = &data.db;  
     let bug_id = form.bug_id;
     let dev_id = form.developer_id.clone();
 
@@ -30,7 +33,7 @@ pub async fn assign_bug(pool: web::Data<SqlitePool>,tmpl: web::Data<Tera>, form:
         developer_id: Some(dev_id.clone()),
     };
 
-    match update_bug_inner(pool.get_ref(), bug_id, update).await {
+    match update_bug_inner(db, bug_id, update).await {
         Ok(bug) => {
             let mut ctx = tera::Context::new();
             ctx.insert("bug", &bug);
